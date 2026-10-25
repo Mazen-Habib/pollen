@@ -61,7 +61,7 @@ export function BrandPage() {
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <header>
         <h1 className="text-2xl font-bold">Brand Memory</h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-fg-2">
           Every analysis, idea, script and chat uses this, so the output sounds like you and fits your audience.
         </p>
       </header>
@@ -79,7 +79,7 @@ export function BrandPage() {
             ) : (
               <input className="input" value={brand[f.key]} onChange={(e) => setBrand({ ...brand, [f.key]: e.target.value })} />
             )}
-            <p className="mt-1 text-xs text-zinc-500">{f.help}</p>
+            <p className="mt-1 text-xs text-fg-3">{f.help}</p>
           </div>
         ))}
       </div>

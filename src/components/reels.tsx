@@ -13,18 +13,24 @@ import {
 } from "../api.ts";
 import { ErrorBox, Markdown, Modal, Spinner, CopyButton, useAsync } from "./ui.tsx";
 
-export function ScoreBadge({ reel, className = "" }: { reel: Reel; className?: string }) {
+/** The outlier score: Pollen's signature number. `lg` is the hero size used on Reel cards. */
+export function ScoreBadge({ reel, size = "sm", className = "" }: { reel: Reel; size?: "sm" | "lg"; className?: string }) {
+  const box = size === "lg" ? "rounded-lg px-2 py-1 text-base leading-none" : "rounded-md px-1.5 py-0.5 text-xs";
   if (reel.score == null) {
     return reel.viewsPerFollower != null ? (
-      <span className={`rounded-md bg-zinc-700 px-1.5 py-0.5 text-xs font-semibold ${className}`} title="Views per follower">
-        {reel.viewsPerFollower.toFixed(1)}×F
+      <span
+        className={`bg-surface-3 font-semibold text-fg tabular-nums ${box} ${className}`}
+        title={`${reel.viewsPerFollower.toFixed(2)} views per follower (not enough Reels from @${reel.owner} for an outlier score)`}
+      >
+        {reel.viewsPerFollower.toFixed(1)}× followers
       </span>
     ) : null;
   }
   return (
     <span
-      className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${scoreTone(reel.score)} ${className}`}
+      className={`font-bold tabular-nums ${box} ${scoreTone(reel.score)} ${className}`}
       title={`${reel.score.toFixed(2)}× @${reel.owner}'s median of ${fmtNum(reel.baseline)} ${reel.metric}`}
+      aria-label={`${reel.score.toFixed(1)} times @${reel.owner}'s usual ${reel.metric}`}
     >
       {reel.score >= 10 ? Math.round(reel.score) : reel.score.toFixed(1)}×
     </span>
@@ -35,8 +41,8 @@ export function Thumb({ reel, className = "" }: { reel: Reel; className?: string
   const [failed, setFailed] = useState(false);
   if (failed || (!reel.thumbnail && reel.source === "manual")) {
     return (
-      <div className={`flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900 p-3 ${className}`}>
-        <p className="line-clamp-6 text-center text-xs text-zinc-400">{reel.caption || <Film className="h-6 w-6" />}</p>
+      <div className={`flex items-center justify-center bg-gradient-to-br from-surface-2 to-surface p-3 ${className}`}>
+        <p className="line-clamp-6 text-center text-xs text-fg-2">{reel.caption || <Film aria-hidden className="h-6 w-6" />}</p>
       </div>
     );
   }
@@ -53,38 +59,38 @@ export function Thumb({ reel, className = "" }: { reel: Reel; className?: string
 
 export function ReelCard({ reel, onOpen }: { reel: Reel; onOpen: () => void }) {
   return (
-    <button onClick={onOpen} className="card group overflow-hidden text-left transition hover:border-zinc-600">
-      <div className="relative aspect-[9/14] w-full overflow-hidden bg-zinc-900">
-        <Thumb reel={reel} className="h-full w-full transition group-hover:scale-[1.02]" />
+    <button onClick={onOpen} className="card group overflow-hidden text-left transition-colors hover:border-line-strong">
+      <div className="relative aspect-[9/14] w-full overflow-hidden bg-surface-2">
+        <Thumb reel={reel} className="h-full w-full transition-transform group-hover:scale-[1.02]" />
         <div className="absolute top-2 left-2">
-          <ScoreBadge reel={reel} />
+          <ScoreBadge reel={reel} size="lg" className="shadow-float" />
         </div>
         {reel.source === "manual" && (
-          <span className="absolute top-2 right-2 rounded bg-zinc-950/80 px-1.5 py-0.5 text-[10px] text-zinc-300">manual</span>
+          <span className="absolute top-2 right-2 rounded-md bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">Manual</span>
         )}
-        <div className="absolute inset-x-0 bottom-0 flex items-center gap-3 bg-gradient-to-t from-black/90 to-transparent px-2 pt-8 pb-2 text-xs font-medium">
+        <div className="absolute inset-x-0 bottom-0 flex items-center gap-3 bg-gradient-to-t from-black/85 to-transparent px-2.5 pt-10 pb-2 text-xs font-semibold text-white tabular-nums">
           <span className="flex items-center gap-1">
-            <Eye className="h-3.5 w-3.5" />
+            <Eye aria-label="Views" className="h-3.5 w-3.5" />
             {fmtNum(reel.views)}
           </span>
           <span className="flex items-center gap-1">
-            <Heart className="h-3.5 w-3.5" />
+            <Heart aria-label="Likes" className="h-3.5 w-3.5" />
             {fmtNum(reel.likes)}
           </span>
           <span className="flex items-center gap-1">
-            <MessageCircle className="h-3.5 w-3.5" />
+            <MessageCircle aria-label="Comments" className="h-3.5 w-3.5" />
             {fmtNum(reel.comments)}
           </span>
         </div>
       </div>
       <div className="space-y-1 p-2.5">
         <div className="flex items-center justify-between gap-2 text-xs">
-          <span className="truncate font-medium text-zinc-200">@{reel.owner || "unknown"}</span>
-          <span className="shrink-0 text-zinc-500">{timeAgo(reel.posted_at)}</span>
+          <span className="truncate font-medium text-fg">@{reel.owner || "unknown"}</span>
+          <span className="shrink-0 text-fg-3">{timeAgo(reel.posted_at)}</span>
         </div>
-        <p className="line-clamp-2 text-xs text-zinc-400">{reel.caption || "No caption"}</p>
+        <p className="line-clamp-2 text-xs text-fg-2">{reel.caption || "No caption"}</p>
         {(reel.growthPerHour != null || reel.vph != null) && (
-          <div className="text-[11px] text-zinc-500">
+          <div className="text-xs text-fg-3 tabular-nums">
             {reel.growthPerHour != null ? `+${fmtNum(reel.growthPerHour)}/h since last refresh` : `${fmtNum(reel.vph)} views/h`}
           </div>
         )}
@@ -102,7 +108,7 @@ export function AddToBoard({ reelId }: { reelId: string }) {
     });
     setDone(board.name);
   };
-  if (done) return <span className="text-sm text-emerald-300">Added to “{done}”</span>;
+  if (done) return <span className="text-sm text-success">Added to “{done}”</span>;
   return (
     <select
       className="input w-auto py-1.5"
@@ -202,13 +208,13 @@ export function ReelDetail({ reelId, onClose, onChanged }: { reelId: string; onC
                 ["Likes", r.likes],
                 ["Comments", r.comments],
               ].map(([k, v]) => (
-                <div key={k as string} className="rounded-lg bg-zinc-800/60 p-2">
-                  <div className="font-semibold text-zinc-100">{fmtNum(v as number | null)}</div>
-                  <div className="text-zinc-500">{k}</div>
+                <div key={k as string} className="rounded-lg bg-surface-2 p-2">
+                  <div className="font-semibold text-fg">{fmtNum(v as number | null)}</div>
+                  <div className="text-fg-3">{k}</div>
                 </div>
               ))}
             </div>
-            <div className="space-y-1 text-xs text-zinc-400">
+            <div className="space-y-1 text-xs text-fg-2">
               {r.score != null && (
                 <div>
                   <ScoreBadge reel={r} /> vs @{r.owner}'s median {fmtNum(r.baseline)} {r.metric}
@@ -246,7 +252,7 @@ export function ReelDetail({ reelId, onClose, onChanged }: { reelId: string; onC
 
             <section>
               <div className="label">Caption</div>
-              <p className="max-h-32 overflow-y-auto text-sm whitespace-pre-wrap text-zinc-300">{r.caption || "No caption"}</p>
+              <p className="max-h-32 overflow-y-auto text-sm whitespace-pre-wrap text-fg-2">{r.caption || "No caption"}</p>
             </section>
 
             <section>
@@ -284,7 +290,7 @@ export function ReelDetail({ reelId, onClose, onChanged }: { reelId: string; onC
                   </div>
                 </div>
               ) : (
-                <p className="max-h-40 overflow-y-auto text-sm whitespace-pre-wrap text-zinc-400">
+                <p className="max-h-40 overflow-y-auto text-sm whitespace-pre-wrap text-fg-2">
                   {r.transcript ||
                     (r.audio_url || r.video_url
                       ? "Not transcribed yet. Analyze does it automatically."
@@ -305,18 +311,18 @@ export function ReelDetail({ reelId, onClose, onChanged }: { reelId: string; onC
                 </div>
               </div>
               {busy === "analyze" && (
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-fg-3">
                   Transcribing and breaking it down in the background (10–30s). You can close this and keep working;
                   you'll get a notice when it's ready.
                 </p>
               )}
               {r.analysis ? (
-                <div className="max-h-[45vh] overflow-y-auto rounded-lg bg-zinc-950/60 p-3">
+                <div className="max-h-[45vh] overflow-y-auto rounded-lg bg-canvas/60 p-3">
                   <Markdown>{r.analysis}</Markdown>
                 </div>
               ) : (
                 busy !== "analyze" && (
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-sm text-fg-3">
                     Get the hook, structure, why it worked, and 3 versions adapted to your brand.
                   </p>
                 )
@@ -375,7 +381,7 @@ export function ManualReelForm({
   return (
     <Modal title="Add a Reel manually" onClose={onClose}>
       <div className="space-y-3">
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-fg-2">
           Copy what you see on Instagram. Numbers like <code>12.5k</code> or <code>1.2m</code> work.
         </p>
         <div className="grid grid-cols-2 gap-3">

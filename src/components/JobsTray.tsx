@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, X } from "lucide-react";
 import { api, jobEvents, type Job } from "../api.ts";
-import { Spinner } from "./ui.tsx";
+import { IconButton, Spinner } from "./ui.tsx";
 import { ReelDetail } from "./reels.tsx";
 
 /** Bottom-right notifications for background analysis/transcription, visible on every page. */
@@ -49,21 +49,21 @@ export function JobsTray() {
   return (
     <>
       {visible.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-40 w-80 -translate-x-1/2 space-y-2">
+        <div role="status" aria-live="polite" className="fixed bottom-4 left-1/2 z-40 w-80 -translate-x-1/2 space-y-2">
           {visible.map((j) => (
-            <div key={key(j)} className="card flex items-start gap-3 bg-zinc-900 p-3 shadow-2xl">
+            <div key={key(j)} className="card flex items-start gap-3 p-3 shadow-float">
               <div className="pt-0.5">
                 {j.status === "running" ? (
-                  <Spinner className="h-4 w-4 text-amber-400" />
+                  <Spinner className="h-4 w-4 text-fg-2" />
                 ) : j.status === "done" ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 text-rose-400" />
+                  <AlertCircle className="h-4 w-4 text-danger" />
                 )}
               </div>
               <div className="min-w-0 flex-1 text-sm">
-                <div className="font-medium text-zinc-100">{headline(j)}</div>
-                <div className="text-xs text-zinc-400">
+                <div className="font-medium text-fg">{headline(j)}</div>
+                <div className="text-xs text-fg-2">
                   {j.status === "running"
                     ? "Running in the background. Keep working."
                     : j.status === "done"
@@ -74,7 +74,7 @@ export function JobsTray() {
                 </div>
                 {j.status !== "running" && (
                   <button
-                    className="mt-1 text-xs font-medium text-amber-300 hover:underline"
+                    className="link mt-1 text-xs font-medium"
                     onClick={() => {
                       setOpenReel(j.reelId);
                       dismiss(j);
@@ -85,9 +85,9 @@ export function JobsTray() {
                 )}
               </div>
               {j.status !== "running" && (
-                <button className="text-zinc-500 hover:text-zinc-200" onClick={() => dismiss(j)}>
+                <IconButton label="Dismiss" className="-m-1" onClick={() => dismiss(j)}>
                   <X className="h-4 w-4" />
-                </button>
+                </IconButton>
               )}
             </div>
           ))}

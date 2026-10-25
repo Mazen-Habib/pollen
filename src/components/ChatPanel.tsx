@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Globe, Paperclip, Send, Square, Trash2, X } from "lucide-react";
 import { api, ApiError, streamChat, type ChatMessage, type ContextSource } from "../api.ts";
-import { CopyButton, ErrorBox, Markdown, Spinner } from "./ui.tsx";
+import { CopyButton, ErrorBox, IconButton, Markdown, Spinner } from "./ui.tsx";
 
 const SUGGESTIONS = [
   "What's working in my niche right now? Be specific.",
@@ -112,15 +112,15 @@ export function ChatPanel({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-zinc-900">
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-4 py-3">
+    <div className="flex h-full min-h-0 flex-col bg-surface">
+      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
         <div className="min-w-0">
           <div className="truncate font-semibold">{title}</div>
-          <div className="flex flex-wrap items-center gap-1 pt-1 text-[11px] text-zinc-400">
-            <Paperclip className="h-3 w-3" />
+          <div className="flex flex-wrap items-center gap-1 pt-1 text-xs text-fg-2">
+            <Paperclip aria-label="Reading" className="h-3 w-3" />
             {sources.length ? (
               sources.map((s) => (
-                <span key={s.label} className="max-w-[180px] truncate rounded bg-zinc-800 px-1.5 py-0.5" title={s.label}>
+                <span key={s.label} className="max-w-[180px] truncate rounded bg-surface-2 px-1.5 py-0.5" title={s.label}>
                   {s.label}
                   {s.truncated ? " ✂" : ""}
                 </span>
@@ -132,14 +132,14 @@ export function ChatPanel({
         </div>
         <div className="flex shrink-0 gap-1">
           {messages.length > 0 && (
-            <button className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800" title="Clear chat" onClick={clear}>
+            <IconButton label="Clear chat" tone="danger" onClick={clear}>
               <Trash2 className="h-4 w-4" />
-            </button>
+            </IconButton>
           )}
           {onClose && (
-            <button className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800" onClick={onClose}>
+            <IconButton label="Close chat" onClick={onClose}>
               <X className="h-4 w-4" />
-            </button>
+            </IconButton>
           )}
         </div>
       </div>
@@ -147,11 +147,11 @@ export function ChatPanel({
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
         {!messages.length && (
           <div className="space-y-2">
-            <p className="text-sm text-zinc-400">Ask anything about the connected sources. Try:</p>
+            <p className="text-sm text-fg-2">Ask anything about the connected sources. Try:</p>
             {SUGGESTIONS.map((s) => (
               <button
                 key={s}
-                className="block w-full rounded-lg border border-zinc-800 px-3 py-2 text-left text-sm text-zinc-300 hover:border-zinc-600"
+                className="block w-full rounded-lg border border-line px-3 py-2 text-left text-sm text-fg-2 transition-colors hover:border-line-strong hover:text-fg"
                 onClick={() => send(s)}
               >
                 {s}
@@ -161,14 +161,14 @@ export function ChatPanel({
         )}
         {messages.map((m, i) =>
           m.role === "user" ? (
-            <div key={i} className="ml-8 rounded-xl bg-amber-400/10 px-3 py-2 text-sm whitespace-pre-wrap text-amber-50">
+            <div key={i} className="ml-8 rounded-xl bg-surface-2 px-3 py-2 text-sm whitespace-pre-wrap text-fg">
               {m.content}
             </div>
           ) : (
             <div key={i} className="group">
               {m.content ? <Markdown>{m.content}</Markdown> : streaming && i === messages.length - 1 && <Spinner />}
               {m.content && !(streaming && i === messages.length - 1) && (
-                <div className="mt-1 opacity-0 transition group-hover:opacity-100">
+                <div className="mt-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                   <CopyButton text={m.content} />
                 </div>
               )}
@@ -176,7 +176,7 @@ export function ChatPanel({
           ),
         )}
         {info && (
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
+          <div className="flex items-center gap-2 text-sm text-fg-2">
             <Spinner /> {info}
           </div>
         )}
@@ -184,9 +184,10 @@ export function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-zinc-800 p-3">
+      <div className="border-t border-line p-3">
         <textarea
           className="input h-20 resize-none"
+          aria-label="Message"
           placeholder="Ask about these sources… (Enter to send, Shift+Enter for a new line)"
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -199,11 +200,12 @@ export function ChatPanel({
         />
         <div className="mt-2 flex items-center justify-between">
           <button
-            className={`btn ${webSearch ? "bg-sky-500/20 text-sky-200" : "bg-zinc-800/70 text-zinc-400 hover:text-zinc-200"}`}
+            aria-pressed={webSearch}
+            className={`btn border ${webSearch ? "border-info/40 bg-info/10 text-info" : "border-transparent bg-surface-2 text-fg-2 hover:text-fg"}`}
             onClick={() => setWebSearch(!webSearch)}
             title="Let the AI search the web live (Groq browser search)"
           >
-            <Globe className="h-4 w-4" /> Web search {webSearch ? "on" : "off"}
+            <Globe aria-hidden className="h-4 w-4" /> Web search: {webSearch ? "On" : "Off"}
           </button>
           {streaming ? (
             <button className="btn-ghost" onClick={() => abortRef.current?.abort()}>

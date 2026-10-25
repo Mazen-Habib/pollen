@@ -18,7 +18,7 @@ function Section({ id, title, desc, children }: { id: string; title: string; des
     <section id={id} className="card scroll-mt-6 space-y-4 p-5">
       <div>
         <h2 className="text-lg font-semibold">{title}</h2>
-        {desc && <div className="mt-1 text-sm text-zinc-400">{desc}</div>}
+        {desc && <div className="mt-1 text-sm text-fg-2">{desc}</div>}
       </div>
       {children}
     </section>
@@ -30,7 +30,7 @@ function Field({ label, help, children }: { label: string; help?: ReactNode; chi
     <div>
       <label className="label">{label}</label>
       {children}
-      {help && <p className="mt-1 text-xs text-zinc-500">{help}</p>}
+      {help && <p className="mt-1 text-xs text-fg-3">{help}</p>}
     </div>
   );
 }
@@ -39,7 +39,7 @@ function TestResult({ result }: { result: { ok?: boolean; message?: string; erro
   if (!result) return null;
   if (result.error) return <ErrorBox error={result.error} />;
   return (
-    <div className="flex items-center gap-2 text-sm text-emerald-300">
+    <div className="flex items-center gap-2 text-sm text-success">
       <CheckCircle2 className="h-4 w-4" /> {result.message}
     </div>
   );
@@ -149,7 +149,7 @@ export function SettingsPage({ section }: { section?: string }) {
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <header>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-fg-2">
           Keys are stored only on this PC (in <code>data/pollen.db</code>) and are only sent to the service they belong to.
         </p>
       </header>
@@ -162,7 +162,7 @@ export function SettingsPage({ section }: { section?: string }) {
           <>
             Any OpenAI-compatible API works. Groq is free and fast, and it powers live web search (gpt-oss) and free
             transcription (Whisper). Get a key at{" "}
-            <a className="text-amber-300 underline" href="https://console.groq.com/keys" target="_blank" rel="noreferrer">
+            <a className="link" href="https://console.groq.com/keys" target="_blank" rel="noreferrer">
               console.groq.com/keys
             </a>
             .
@@ -260,12 +260,12 @@ export function SettingsPage({ section }: { section?: string }) {
           <>
             Works for every public account and hashtag, includes view counts and video files (so Reels can be transcribed).
             Free plan: $5 credit/month, about 1,900 Reels.{" "}
-            <a className="text-amber-300 underline" href="https://console.apify.com/sign-up" target="_blank" rel="noreferrer">
+            <a className="link" href="https://console.apify.com/sign-up" target="_blank" rel="noreferrer">
               Sign up
             </a>
             , then copy your token from{" "}
             <a
-              className="text-amber-300 underline"
+              className="link"
               href="https://console.apify.com/settings/integrations"
               target="_blank"
               rel="noreferrer"
@@ -288,10 +288,10 @@ export function SettingsPage({ section }: { section?: string }) {
             onChange={set("apifyToken")}
           />
         </Field>
-        <div className="rounded-lg bg-zinc-950/60 p-3 text-sm text-zinc-400">
+        <div className="rounded-lg bg-canvas/60 p-3 text-sm text-fg-2">
           Estimated cost with your watchlist ({counts.creators} creators, {counts.hashtags} hashtags,{" "}
           {Math.round(refreshesPerMonth)} refreshes/month):{" "}
-          <span className={apifyMonthly > 5 ? "font-semibold text-amber-300" : "font-semibold text-emerald-300"}>
+          <span className={apifyMonthly > 5 ? "font-semibold text-danger" : "font-semibold text-success"}>
             ≈ ${apifyMonthly.toFixed(2)}/month
           </span>
           {apifyMonthly > 5
@@ -324,17 +324,17 @@ export function SettingsPage({ section }: { section?: string }) {
         desc="Instagram's own API. Returns views, likes and comments of any public Business or Creator account (most creators are). About 15 minutes of one-time setup."
       >
         {s.metaIgUserId ? (
-          <div className="rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-200">
+          <div className="rounded-lg bg-success/10 p-3 text-sm text-success">
             Connected as @{s.metaIgUsername || s.metaIgUserId}.
             {metaDaysLeft != null &&
               (metaDaysLeft < 0 ? (
-                <span className="text-rose-300"> Token expired: reconnect below.</span>
+                <span className="text-danger"> Token expired: reconnect below.</span>
               ) : (
-                <span className={metaDaysLeft < 7 ? "text-amber-300" : ""}> Token expires in {metaDaysLeft} days.</span>
+                <span className={metaDaysLeft < 7 ? "font-medium text-danger" : ""}> Token expires in {metaDaysLeft} days.</span>
               ))}
           </div>
         ) : null}
-        <ol className="list-decimal space-y-2 pl-5 text-sm text-zinc-300">
+        <ol className="list-decimal space-y-2 pl-5 text-sm text-fg-2">
           <li>
             In the Instagram app: <b>Settings → Account type and tools → Switch to professional account</b> (Creator is fine).
           </li>
@@ -343,7 +343,7 @@ export function SettingsPage({ section }: { section?: string }) {
           </li>
           <li>
             Go to{" "}
-            <a className="text-amber-300 underline" href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer">
+            <a className="link" href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer">
               developers.facebook.com/apps
             </a>{" "}
             → <b>Create app</b> → use case <b>Other</b> → type <b>Business</b>. Name it “Pollen”.
@@ -351,7 +351,7 @@ export function SettingsPage({ section }: { section?: string }) {
           <li>
             Open{" "}
             <a
-              className="text-amber-300 underline"
+              className="link"
               href="https://developers.facebook.com/tools/explorer"
               target="_blank"
               rel="noreferrer"
@@ -419,7 +419,7 @@ export function SettingsPage({ section }: { section?: string }) {
           </a>
         </div>
         <TestResult result={tests.meta ?? null} />
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-fg-3">
           Limits: Meta only sees Business/Creator accounts (not personal ones), doesn't provide video files (upload them for
           transcripts), and shows likes/comments but no views for hashtag searches. Pollen falls back to Apify for anything
           Meta can't fetch.

@@ -14,12 +14,13 @@ import {
   UserRound,
   File as FileIcon,
 } from "lucide-react";
-import { api, fmtNum, timeAgo, type BoardNode, type RadarStatus, type Reel } from "../api.ts";
+import { api, fmtNum, timeAgo, type BoardNode, type NodeType, type RadarStatus, type Reel } from "../api.ts";
 import { ScoreBadge, Thumb } from "./reels.tsx";
-import { Spinner } from "./ui.tsx";
+import { IconButton, Spinner } from "./ui.tsx";
 
 export type BoardActions = {
   update: (id: string, data: Record<string, unknown>) => Promise<void>;
+  /** Asks first when deleting would lose something (e.g. a chat's conversation). */
   remove: (id: string) => void;
   openChat: (id: string) => void;
   openReel: (reelId: string) => void;
@@ -34,41 +35,81 @@ export const BoardContext = createContext<BoardActions>({
   reload: () => {},
 });
 
+/**
+ * Each card type has a name, an icon shape and a tint. The tint only helps scanning;
+ * the icon and the title carry the meaning, so nothing depends on color alone.
+ */
+export const KINDS: Record<NodeType, { label: string; Icon: typeof Bot; tint: string }> = {
+  chat: { label: "AI chat", Icon: Bot, tint: "text-indigo-600 dark:text-indigo-300" },
+  reel: { label: "Reel", Icon: Film, tint: "text-pink-600 dark:text-pink-300" },
+  creator: { label: "Creator", Icon: UserRound, tint: "text-violet-600 dark:text-violet-300" },
+  radar: { label: "Trend Radar", Icon: RadarIcon, tint: "text-emerald-600 dark:text-emerald-300" },
+  url: { label: "Web page", Icon: Globe, tint: "text-sky-600 dark:text-sky-300" },
+  file: { label: "File", Icon: FileIcon, tint: "text-orange-600 dark:text-orange-300" },
+  note: { label: "Note", Icon: StickyNote, tint: "text-yellow-700 dark:text-yellow-300" },
+};
+
+/** A short human name for a card, used in menus ("Disconnect Note from AI chat"). */
+export function nodeTitle(node: BoardNode): string {
+  const d = node.data;
+  switch (node.type) {
+    case "chat":
+      return d.title || "AI chat";
+    case "note":
+      return d.title ? `Note “${d.title}”` : "Note";
+    case "reel":
+      return node.live?.owner ? `Reel by @${node.live.owner}` : "Reel";
+    case "creator":
+      return `@${d.username}`;
+    case "radar":
+      return "Trend Radar";
+    case "url":
+      return d.title || d.site || "Web page";
+    case "file":
+      return d.filename || "File";
+  }
+}
+
 type FlowData = { node: BoardNode; connections?: number };
+
+const HANDLE_HINT = "Drag onto any card to connect";
 
 function Shell({
   id,
-  icon,
+  node,
   title,
-  accent,
+  icon,
   children,
-  width = 270,
+  width = 272,
   actions,
   target,
 }: {
   id: string;
-  icon: ReactNode;
+  node: BoardNode;
   title: ReactNode;
-  accent: string;
+  icon?: ReactNode;
   children: ReactNode;
   width?: number;
   actions?: ReactNode;
   target?: boolean;
 }) {
   const { remove } = useContext(BoardContext);
+  const kind = KINDS[node.type];
   return (
-    <div className="rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl shadow-black/30" style={{ width }}>
-      {target && <Handle type="target" position={Position.Left} />}
-      <div className={`flex items-center gap-2 rounded-t-xl border-b border-zinc-800 px-3 py-2 text-xs font-semibold ${accent}`}>
-        {icon}
-        <div className="min-w-0 flex-1 truncate">{title}</div>
+    <div className="rounded-xl border border-line bg-surface shadow-float" style={{ width }}>
+      {target && <Handle type="target" position={Position.Left} title={HANDLE_HINT} />}
+      <div className="flex items-center gap-2 border-b border-line py-1 pr-1 pl-3">
+        <span className={`shrink-0 ${kind.tint}`} aria-hidden>
+          {icon ?? <kind.Icon className="h-4 w-4" />}
+        </span>
+        <div className="min-w-0 flex-1 truncate text-xs font-semibold text-fg">{title}</div>
         {actions}
-        <button className="nodrag text-zinc-500 hover:text-rose-300" title="Delete" onClick={() => remove(id)}>
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <IconButton label={`Delete ${kind.label.toLowerCase()}`} tone="danger" className="nodrag" onClick={() => remove(id)}>
+          <Trash2 className="h-4 w-4" />
+        </IconButton>
       </div>
       <div className="p-3">{children}</div>
-      <Handle type="source" position={Position.Right} />
+      <Handle type="source" position={Position.Right} title={HANDLE_HINT} />
     </div>
   );
 }
@@ -78,17 +119,20 @@ export function NoteNode({ id, data }: NodeProps) {
   const { update } = useContext(BoardContext);
   const [title, setTitle] = useState(node.data.title ?? "");
   const [text, setText] = useState(node.data.text ?? "");
+  const field = "nodrag w-full rounded-md bg-transparent px-1.5 -mx-1.5 focus:ring-2 focus:ring-focus focus:outline-none";
   return (
-    <Shell id={id} icon={<StickyNote className="h-3.5 w-3.5" />} title="Note" accent="text-yellow-200" width={280}>
+    <Shell id={id} node={node} title="Note" width={280}>
       <input
-        className="nodrag mb-2 w-full bg-transparent text-sm font-semibold text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
+        aria-label="Note title"
+        className={`${field} mb-1 py-0.5 text-sm font-semibold text-fg placeholder:text-fg-3`}
         placeholder="Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onBlur={() => title !== node.data.title && update(id, { title })}
       />
       <textarea
-        className="nodrag nowheel h-32 w-full resize-y bg-transparent text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none"
+        aria-label="Note text"
+        className={`${field} nowheel h-32 resize-y py-1 text-sm text-fg-2 placeholder:text-fg-3`}
         placeholder="Ideas, research, your offer, a competitor's script… anything the AI should know."
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -102,21 +146,16 @@ export function ChatNode({ id, data }: NodeProps) {
   const { node, connections = 0 } = data as FlowData;
   const { openChat } = useContext(BoardContext);
   return (
-    <Shell
-      id={id}
-      icon={<Bot className="h-3.5 w-3.5" />}
-      title={node.data.title || "AI chat"}
-      accent="text-amber-300"
-      width={300}
-      target
-    >
-      <div className="mb-2 text-xs text-zinc-400">
-        {connections ? `${connections} source${connections > 1 ? "s" : ""} connected` : "Drag sources onto me ←"}
+    <Shell id={id} node={node} title={node.data.title || "AI chat"} width={300} target>
+      <div className="mb-2 text-xs text-fg-2">
+        {connections
+          ? `Reading ${connections} connected card${connections > 1 ? "s" : ""}`
+          : "Nothing connected yet. Drag a card's dot onto this chat."}
       </div>
       {node.live?.lastReply && (
-        <p className="mb-3 line-clamp-4 rounded-lg bg-zinc-950/60 p-2 text-xs text-zinc-400">{node.live.lastReply}</p>
+        <p className="mb-3 line-clamp-4 rounded-lg bg-canvas p-2 text-xs text-fg-2">{node.live.lastReply}</p>
       )}
-      <button className="nodrag btn-primary w-full justify-center" onClick={() => openChat(id)}>
+      <button className="nodrag btn-primary w-full" onClick={() => openChat(id)}>
         Open chat
       </button>
     </Shell>
@@ -130,33 +169,35 @@ export function ReelNode({ id, data }: NodeProps) {
   return (
     <Shell
       id={id}
-      icon={<Film className="h-3.5 w-3.5" />}
-      title={reel ? `Reel · @${reel.owner || "unknown"}` : "Reel"}
-      accent="text-pink-300"
+      node={node}
+      title={reel ? `@${reel.owner || "unknown"}` : "Reel"}
       actions={reel && <ScoreBadge reel={reel} />}
     >
       {reel ? (
         <div className="flex gap-3">
           <Thumb reel={reel} className="aspect-[9/14] w-16 shrink-0 rounded-md" />
           <div className="min-w-0 space-y-1 text-xs">
-            <div className="font-medium text-zinc-200">
+            <div className="font-semibold text-fg tabular-nums">
               {fmtNum(reel.views)} views · {fmtNum(reel.likes)} likes
             </div>
-            <div className="text-zinc-500">{timeAgo(reel.posted_at)}</div>
-            <p className="line-clamp-3 text-zinc-400">{reel.caption}</p>
+            <div className="text-fg-3">{timeAgo(reel.posted_at)}</div>
+            <p className="line-clamp-3 text-fg-2">{reel.caption}</p>
             {reel.job?.status === "running" ? (
-              <button className="nodrag flex items-center gap-1.5 text-zinc-400" onClick={() => openReel(reel.id)}>
+              <button className="nodrag flex items-center gap-1.5 text-fg-2" onClick={() => openReel(reel.id)}>
                 <Spinner className="h-3 w-3" /> {reel.job.kind === "analyze" ? "Analyzing…" : "Transcribing…"}
               </button>
             ) : (
-              <button className="nodrag text-amber-300 hover:underline" onClick={() => openReel(reel.id)}>
-                {reel.analysis ? "View breakdown" : reel.job?.status === "error" ? "Analysis failed: see why" : "Analyze →"}
+              <button
+                className={`nodrag font-medium ${reel.job?.status === "error" && !reel.analysis ? "text-danger underline underline-offset-2" : "link"}`}
+                onClick={() => openReel(reel.id)}
+              >
+                {reel.analysis ? "View breakdown" : reel.job?.status === "error" ? "Analysis failed: see why" : "Analyze"}
               </button>
             )}
           </div>
         </div>
       ) : (
-        <p className="text-xs text-zinc-500">This Reel's data was removed.</p>
+        <p className="text-xs text-fg-3">This Reel's data was removed.</p>
       )}
     </Shell>
   );
@@ -191,34 +232,40 @@ export function CreatorNode({ id, data }: NodeProps) {
   return (
     <Shell
       id={id}
-      icon={<UserRound className="h-3.5 w-3.5" />}
+      node={node}
       title={`@${node.data.username}`}
-      accent="text-violet-300"
       actions={
-        <button className="nodrag text-zinc-400 hover:text-zinc-100" title="Refresh live data" onClick={refresh} disabled={busy}>
-          {busy ? <Spinner className="h-3.5 w-3.5" /> : <RefreshCw className="h-3.5 w-3.5" />}
-        </button>
+        <IconButton label="Refresh live data" className="nodrag" onClick={refresh} disabled={busy}>
+          {busy ? <Spinner className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
+        </IconButton>
       }
     >
-      <div className="mb-2 text-xs text-zinc-400">
+      <div className="mb-2 text-xs text-fg-2">
         {creator?.followers ? `${fmtNum(creator.followers)} followers · ` : ""}
-        {creator?.last_fetched_at ? `updated ${timeAgo(creator.last_fetched_at)}` : "not fetched yet: press ↻"}
+        {creator?.last_fetched_at ? `Updated ${timeAgo(creator.last_fetched_at)}` : "Not fetched yet. Press Refresh."}
       </div>
-      {(error || creator?.last_error) && <p className="mb-2 text-xs text-rose-300">{error || creator.last_error}</p>}
-      <div className="space-y-1">
-        {top.map((r) => (
-          <button
-            key={r.id}
-            className="nodrag flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-zinc-800"
-            onClick={() => openReel(r.id)}
-          >
-            <ScoreBadge reel={r} />
-            <span className="text-zinc-300">{fmtNum(r.views ?? r.likes)}</span>
-            <span className="truncate text-zinc-500">{r.caption}</span>
-          </button>
-        ))}
-      </div>
+      {(error || creator?.last_error) && <p className="mb-2 text-xs text-danger">{error || creator.last_error}</p>}
+      <ReelRows reels={top} onOpen={openReel} show="caption" />
     </Shell>
+  );
+}
+
+function ReelRows({ reels, onOpen, show }: { reels: Reel[]; onOpen: (id: string) => void; show: "caption" | "owner" }) {
+  return (
+    <div className="-mx-1 space-y-0.5">
+      {reels.map((r) => (
+        <button
+          key={r.id}
+          className="nodrag flex w-full items-center gap-2 rounded-md px-1 py-1 text-left text-xs hover:bg-surface-2"
+          onClick={() => onOpen(r.id)}
+        >
+          <ScoreBadge reel={r} />
+          {show === "owner" && <span className="shrink-0 font-medium text-fg">@{r.owner}</span>}
+          <span className="shrink-0 text-fg-2 tabular-nums">{fmtNum(r.views ?? r.likes)}</span>
+          {show === "caption" && <span className="truncate text-fg-3">{r.caption}</span>}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -229,42 +276,30 @@ export function RadarNode({ id, data }: NodeProps) {
   return (
     <Shell
       id={id}
-      icon={<RadarIcon className="h-3.5 w-3.5" />}
-      title="Trend Radar (live)"
-      accent="text-emerald-300"
+      node={node}
+      title="Trend Radar"
       width={290}
       actions={
         <select
-          className="nodrag rounded bg-zinc-800 px-1 py-0.5 text-[11px] text-zinc-300"
+          aria-label="Time window"
+          className="nodrag rounded-md border border-line bg-canvas px-1.5 py-1 text-xs text-fg"
           value={node.data.days ?? 14}
           onChange={(e) => update(id, { days: Number(e.target.value) })}
         >
           {[7, 14, 30, 90].map((d) => (
             <option key={d} value={d}>
-              {d}d
+              {d} days
             </option>
           ))}
         </select>
       }
     >
       {top.length ? (
-        <div className="space-y-1">
-          {top.map((r) => (
-            <button
-              key={r.id}
-              className="nodrag flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-zinc-800"
-              onClick={() => openReel(r.id)}
-            >
-              <ScoreBadge reel={r} />
-              <span className="shrink-0 text-zinc-300">@{r.owner}</span>
-              <span className="truncate text-zinc-500">{fmtNum(r.views ?? r.likes)}</span>
-            </button>
-          ))}
-        </div>
+        <ReelRows reels={top} onOpen={openReel} show="owner" />
       ) : (
-        <p className="text-xs text-zinc-500">No Reels yet. Add creators on the Trend Radar page and refresh.</p>
+        <p className="text-xs text-fg-2">No Reels yet. Add creators on the Trend Radar page and refresh.</p>
       )}
-      <p className="mt-2 text-[11px] text-zinc-600">Feeds the top outliers into any connected chat, always up to date.</p>
+      <p className="mt-2 text-xs text-fg-3">Feeds the top outliers into any connected chat.</p>
     </Shell>
   );
 }
@@ -272,45 +307,35 @@ export function RadarNode({ id, data }: NodeProps) {
 export function UrlNode({ id, data }: NodeProps) {
   const { node } = data as FlowData;
   return (
-    <Shell id={id} icon={<Globe className="h-3.5 w-3.5" />} title={node.data.site || "Web page"} accent="text-sky-300">
-      <a
-        className="nodrag line-clamp-2 text-sm font-medium text-zinc-100 hover:underline"
-        href={node.data.url}
-        target="_blank"
-        rel="noreferrer"
-      >
+    <Shell id={id} node={node} title={node.data.site || "Web page"}>
+      <a className="nodrag line-clamp-2 text-sm font-medium text-fg hover:underline" href={node.data.url} target="_blank" rel="noreferrer">
         {node.data.title}
       </a>
-      <p className="mt-1 line-clamp-4 text-xs text-zinc-400">{node.data.preview}</p>
-      <p className="mt-1 text-[11px] text-zinc-600">~{fmtNum(Math.round((node.data.chars ?? 0) / 4))} tokens</p>
+      <p className="mt-1 line-clamp-4 text-xs text-fg-2">{node.data.preview}</p>
+      <p className="mt-1.5 text-xs text-fg-3 tabular-nums">~{fmtNum(Math.round((node.data.chars ?? 0) / 4))} tokens</p>
     </Shell>
   );
 }
 
 const FILE_ICONS: Record<string, ReactNode> = {
-  pdf: <FileText className="h-3.5 w-3.5" />,
-  audio: <FileAudio className="h-3.5 w-3.5" />,
-  video: <FileVideo className="h-3.5 w-3.5" />,
+  pdf: <FileText className="h-4 w-4" />,
+  audio: <FileAudio className="h-4 w-4" />,
+  video: <FileVideo className="h-4 w-4" />,
 };
 
 export function FileNode({ id, data }: NodeProps) {
   const { node } = data as FlowData;
   return (
-    <Shell
-      id={id}
-      icon={FILE_ICONS[node.data.kind] ?? <FileIcon className="h-3.5 w-3.5" />}
-      title={node.data.filename}
-      accent="text-orange-300"
-    >
+    <Shell id={id} node={node} title={node.data.filename} icon={FILE_ICONS[node.data.kind]}>
       {node.data.error ? (
-        <p className="text-xs text-rose-300">{node.data.error}</p>
+        <p className="text-xs text-danger">{node.data.error}</p>
       ) : (
         <>
-          <div className="mb-1 text-[11px] text-zinc-500 uppercase">
-            {node.data.kind === "audio" || node.data.kind === "video" ? "Transcript" : node.data.kind}
+          <div className="mb-1 text-xs font-medium text-fg-3">
+            {node.data.kind === "audio" || node.data.kind === "video" ? "Transcript" : String(node.data.kind).toUpperCase()}
           </div>
-          <p className="line-clamp-5 text-xs text-zinc-400">{node.data.preview || "(no text found)"}</p>
-          <p className="mt-1 text-[11px] text-zinc-600">~{fmtNum(Math.round((node.data.chars ?? 0) / 4))} tokens</p>
+          <p className="line-clamp-5 text-xs text-fg-2">{node.data.preview || "No text found."}</p>
+          <p className="mt-1.5 text-xs text-fg-3 tabular-nums">~{fmtNum(Math.round((node.data.chars ?? 0) / 4))} tokens</p>
         </>
       )}
     </Shell>

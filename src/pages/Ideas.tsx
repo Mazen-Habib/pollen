@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { FileText, Lightbulb, Plus, Sparkles, Trash2, ScrollText } from "lucide-react";
+import { FileText, Film, Lightbulb, Plus, Sparkles, Trash2, ScrollText } from "lucide-react";
 import { api, timeAgo, type Idea, type IdeaStatus, type Report } from "../api.ts";
-import { CopyButton, Empty, ErrorBox, Markdown, Modal, Spinner, useAsync } from "../components/ui.tsx";
+import { CopyButton, Empty, ErrorBox, IconButton, Markdown, Modal, Spinner, useAsync } from "../components/ui.tsx";
 import { ReelDetail } from "../components/reels.tsx";
 
 const STATUSES: IdeaStatus[] = ["new", "saved", "scripting", "filmed", "posted", "dismissed"];
 const STATUS_TONE: Record<IdeaStatus, string> = {
-  new: "bg-sky-500/15 text-sky-200",
-  saved: "bg-amber-400/15 text-amber-200",
-  scripting: "bg-violet-500/15 text-violet-200",
-  filmed: "bg-emerald-500/15 text-emerald-200",
-  posted: "bg-emerald-500/30 text-emerald-100",
-  dismissed: "bg-zinc-700 text-zinc-400",
+  new: "bg-info/10 text-info",
+  saved: "bg-accent/25 text-fg",
+  scripting: "bg-violet-500/15 text-violet-700 dark:text-violet-200",
+  filmed: "bg-success/10 text-success",
+  posted: "bg-success/20 text-success",
+  dismissed: "bg-surface-3 text-fg-2",
 };
 
 function ScriptModal({ idea, onClose, onSaved }: { idea: Idea; onClose: () => void; onSaved: (i: Idea) => void }) {
@@ -36,11 +36,11 @@ function ScriptModal({ idea, onClose, onSaved }: { idea: Idea; onClose: () => vo
     <Modal title={current.title} onClose={onClose} wide>
       <div className="space-y-4">
         {current.script ? (
-          <div className="max-h-[55vh] overflow-y-auto rounded-lg bg-zinc-950/60 p-4">
+          <div className="max-h-[55vh] overflow-y-auto rounded-lg bg-canvas/60 p-4">
             <Markdown>{current.script}</Markdown>
           </div>
         ) : (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-fg-2">
             Pollen writes a timestamped script with hook, beats, on-screen text, caption and hashtags, based on the Reels
             this idea came from and your Brand Memory.
           </p>
@@ -82,37 +82,38 @@ function IdeaCard({
   return (
     <div className="card space-y-2.5 p-4">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold text-zinc-50">{idea.title}</h3>
+        <h3 className="font-semibold text-fg">{idea.title}</h3>
         <select
-          className={`rounded-md border-0 px-2 py-1 text-xs font-medium ${STATUS_TONE[idea.status]}`}
+          aria-label="Status"
+          className={`rounded-md border-0 px-2 py-1 text-xs font-medium capitalize ${STATUS_TONE[idea.status]}`}
           value={idea.status}
           onChange={(e) => setStatus(e.target.value as IdeaStatus)}
         >
           {STATUSES.map((s) => (
-            <option key={s} value={s} className="bg-zinc-900 text-zinc-100">
+            <option key={s} value={s} className="bg-surface text-fg">
               {s}
             </option>
           ))}
         </select>
       </div>
-      {idea.hook && <blockquote className="border-l-2 border-amber-400 pl-3 text-sm text-amber-50 italic">“{idea.hook}”</blockquote>}
+      {idea.hook && <blockquote className="border-l-2 border-line-strong pl-3 text-sm text-fg italic">“{idea.hook}”</blockquote>}
       <dl className="grid gap-1.5 text-sm">
         {idea.format && (
           <div>
-            <dt className="inline text-zinc-500">Format: </dt>
-            <dd className="inline text-zinc-300">{idea.format}</dd>
+            <dt className="inline text-fg-3">Format: </dt>
+            <dd className="inline text-fg-2">{idea.format}</dd>
           </div>
         )}
         {idea.angle && (
           <div>
-            <dt className="inline text-zinc-500">Angle: </dt>
-            <dd className="inline text-zinc-300">{idea.angle}</dd>
+            <dt className="inline text-fg-3">Angle: </dt>
+            <dd className="inline text-fg-2">{idea.angle}</dd>
           </div>
         )}
         {idea.why && (
           <div>
-            <dt className="inline text-zinc-500">Why: </dt>
-            <dd className="inline text-zinc-400">{idea.why}</dd>
+            <dt className="inline text-fg-3">Why: </dt>
+            <dd className="inline text-fg-2">{idea.why}</dd>
           </div>
         )}
       </dl>
@@ -120,22 +121,22 @@ function IdeaCard({
         <button className="btn-primary" onClick={onScript}>
           <ScrollText className="h-4 w-4" /> {idea.script ? "View script" : "Write script"}
         </button>
-        {basedOn.map((id) => (
-          <button key={id} className="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700" onClick={() => onOpenReel(id)}>
-            ▶ source Reel
+        {basedOn.map((id, i) => (
+          <button key={id} className="btn-ghost px-2 py-1 text-xs" onClick={() => onOpenReel(id)}>
+            <Film aria-hidden className="h-3.5 w-3.5" /> Source Reel{basedOn.length > 1 ? ` ${i + 1}` : ""}
           </button>
         ))}
-        <span className="ml-auto text-xs text-zinc-500">{timeAgo(idea.created_at)}</span>
-        <button
-          className="text-zinc-600 hover:text-rose-300"
-          title="Delete"
+        <span className="ml-auto text-xs text-fg-3">{timeAgo(idea.created_at)}</span>
+        <IconButton
+          label="Delete idea"
+          tone="danger"
           onClick={async () => {
             await api(`/ideas/${idea.id}`, { method: "DELETE" });
             onChange(null);
           }}
         >
           <Trash2 className="h-4 w-4" />
-        </button>
+        </IconButton>
       </div>
     </div>
   );
@@ -210,16 +211,17 @@ export function IdeasPage({ param }: { param?: string }) {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Ideas</h1>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-fg-2">
             Generated from what's outperforming on your Radar. Move them through your pipeline as you film.
           </p>
         </div>
         <div className="flex gap-2">
-          <div className="flex rounded-lg bg-zinc-900 p-0.5">
+          <div className="flex rounded-lg border border-line bg-surface-2 p-0.5">
             {(["ideas", "reports"] as const).map((t) => (
               <button
                 key={t}
-                className={`rounded-md px-3 py-1 text-sm capitalize ${tab === t ? "bg-zinc-700 text-white" : "text-zinc-400"}`}
+                className={`rounded-md px-3 py-1 text-sm capitalize ${tab === t ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg"}`}
+                aria-pressed={tab === t}
                 onClick={() => setTab(t)}
               >
                 {t}
@@ -239,7 +241,7 @@ export function IdeasPage({ param }: { param?: string }) {
               <button
                 key={s || "all"}
                 className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${
-                  filter === s ? "bg-zinc-100 text-zinc-900" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                  filter === s ? "bg-fg text-canvas" : "bg-surface-2 text-fg-2 hover:bg-surface-3"
                 }`}
                 onClick={() => setFilter(s)}
               >
@@ -266,16 +268,16 @@ export function IdeasPage({ param }: { param?: string }) {
                 <button
                   key={r.id}
                   className={`block w-full rounded-lg px-3 py-2 text-left text-sm ${
-                    r.id === reportId ? "bg-zinc-800 text-white" : "text-zinc-400 hover:bg-zinc-900"
+                    r.id === reportId ? "bg-surface-3 text-fg" : "text-fg-2 hover:bg-surface-2"
                   }`}
                   onClick={() => setSelectedReport(r.id)}
                 >
                   <div className="font-medium">{r.title}</div>
-                  <div className="line-clamp-2 text-xs text-zinc-500">{r.headline}</div>
+                  <div className="line-clamp-2 text-xs text-fg-3">{r.headline}</div>
                 </button>
               ))
             ) : (
-              <p className="text-sm text-zinc-500">No reports yet.</p>
+              <p className="text-sm text-fg-3">No reports yet.</p>
             )}
           </aside>
           <section className="min-w-0 space-y-5">
@@ -289,7 +291,7 @@ export function IdeasPage({ param }: { param?: string }) {
                     <div className="flex gap-2">
                       <CopyButton text={report.data.body ?? ""} />
                       <button
-                        className="btn-danger"
+                        className="btn-danger" aria-label="Delete report" title="Delete report"
                         onClick={async () => {
                           await api(`/reports/${report.data!.id}`, { method: "DELETE" });
                           setSelectedReport(null);

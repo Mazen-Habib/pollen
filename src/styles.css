@@ -1,44 +1,132 @@
 @import "tailwindcss";
 @import "@xyflow/react/dist/style.css";
 
+/*
+  Design tokens. Light and dark follow the system setting (no in-app switch, per HIG dark-mode.md).
+  Every text token meets 4.5:1 on every surface token in both appearances.
+*/
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
+  --c-canvas: #f4f4f6;
+  --c-surface: #ffffff;
+  --c-surface-2: #ececf0;
+  --c-surface-3: #e0e0e6;
+  --c-line: #e3e3e8;
+  --c-line-strong: #b8b8c2;
+  --c-fg: #18181b;
+  --c-fg-2: #45454d;
+  --c-fg-3: #5f5f68;
+  --c-accent: #f5a524;
+  --c-accent-hover: #f7b543;
+  --c-on-accent: #1a1407;
+  --c-focus: #b45309;
+  --c-danger: #be123c;
+  --c-success: #047857;
+  --c-info: #0369a1;
+  --c-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 16px rgb(0 0 0 / 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-canvas: #0c0c0e;
+    --c-surface: #16161a;
+    --c-surface-2: #212126;
+    --c-surface-3: #2d2d33;
+    --c-line: #2a2a30;
+    --c-line-strong: #45454e;
+    --c-fg: #f4f4f5;
+    --c-fg-2: #b4b4bd;
+    --c-fg-3: #94949e;
+    --c-accent: #fbbf24;
+    --c-accent-hover: #fcd34d;
+    --c-on-accent: #1a1407;
+    --c-focus: #fbbf24;
+    --c-danger: #fb7185;
+    --c-success: #34d399;
+    --c-info: #7dd3fc;
+    --c-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--c-canvas);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-surface-3: var(--c-surface-3);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-fg: var(--c-fg);
+  --color-fg-2: var(--c-fg-2);
+  --color-fg-3: var(--c-fg-3);
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-on-accent: var(--c-on-accent);
+  --color-focus: var(--c-focus);
+  --color-danger: var(--c-danger);
+  --color-success: var(--c-success);
+  --color-info: var(--c-info);
+  --shadow-float: var(--c-shadow);
 }
 
 body {
-  @apply bg-zinc-950 text-zinc-100 antialiased;
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  @apply bg-canvas text-fg antialiased;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* One visible focus style for everything you can reach with the keyboard. */
+:where(button, a, select, summary, [role="menuitem"], [tabindex]):focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Reusable bits */
 @utility btn {
-  @apply inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-primary {
-  @apply btn bg-amber-400 text-zinc-950 hover:bg-amber-300;
+  @apply btn bg-accent text-on-accent hover:bg-accent-hover;
 }
 @utility btn-ghost {
-  @apply btn bg-zinc-800/70 text-zinc-100 hover:bg-zinc-700;
+  @apply btn bg-surface-2 text-fg hover:bg-surface-3;
 }
 @utility btn-danger {
-  @apply btn bg-transparent text-rose-300 hover:bg-rose-500/15;
+  @apply btn bg-transparent text-danger hover:bg-danger/10;
+}
+/* Icon-only button: 16px glyph + padding = 28px, the desktop default control size. */
+@utility icon-btn {
+  @apply inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-fg-3 transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-50;
 }
 @utility input {
-  @apply w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none;
+  @apply w-full rounded-lg border border-line-strong bg-canvas px-3 py-2 text-sm text-fg placeholder:text-fg-3 focus:border-focus focus:ring-1 focus:ring-focus focus:outline-none;
 }
 @utility card {
-  @apply rounded-xl border border-zinc-800 bg-zinc-900/70;
+  @apply rounded-xl border border-line bg-surface;
 }
 @utility label {
-  @apply mb-1 block text-xs font-medium tracking-wide text-zinc-400 uppercase;
+  @apply mb-1 block text-xs font-medium tracking-wide text-fg-2 uppercase;
+}
+@utility link {
+  @apply text-fg underline decoration-fg-3 underline-offset-2 hover:decoration-fg;
 }
 
 /* Markdown output */
 .prose-pollen {
-  @apply text-sm leading-relaxed text-zinc-200;
+  @apply text-sm leading-relaxed text-fg;
 }
 .prose-pollen :is(h1, h2, h3) {
-  @apply mt-4 mb-2 font-semibold text-zinc-50;
+  @apply mt-4 mb-2 font-semibold text-fg;
 }
 .prose-pollen h1 {
   @apply text-lg;
@@ -65,33 +153,61 @@ body {
   @apply my-0.5;
 }
 .prose-pollen a {
-  @apply text-amber-300 underline underline-offset-2;
+  @apply link;
 }
 .prose-pollen blockquote {
-  @apply my-3 border-l-2 border-amber-400 pl-3 text-zinc-100 italic;
+  @apply my-3 border-l-2 border-line-strong pl-3 text-fg italic;
 }
 .prose-pollen code {
-  @apply rounded bg-zinc-800 px-1 py-0.5 text-[0.85em];
+  @apply rounded bg-surface-2 px-1 py-0.5 text-[0.85em];
 }
 .prose-pollen pre {
-  @apply my-2 overflow-x-auto rounded-lg bg-zinc-800 p-3;
+  @apply my-2 overflow-x-auto rounded-lg bg-surface-2 p-3;
 }
 .prose-pollen table {
   @apply my-3 w-full border-collapse text-left text-xs;
 }
 .prose-pollen :is(th, td) {
-  @apply border border-zinc-700 px-2 py-1;
-}
-.prose-pollen strong {
-  @apply text-zinc-50;
+  @apply border border-line px-2 py-1;
 }
 
-/* React Flow tweaks */
+/* React Flow, themed from the same tokens */
+.react-flow {
+  --xy-background-color: var(--c-canvas);
+  --xy-background-pattern-dots-color: var(--c-line-strong);
+  --xy-edge-stroke: var(--c-fg-3);
+  --xy-edge-stroke-selected: var(--c-accent);
+  --xy-edge-stroke-width: 1.75;
+  --xy-connectionline-stroke: var(--c-accent);
+  --xy-connectionline-stroke-width: 2;
+  --xy-minimap-background-color: var(--c-surface);
+  --xy-minimap-mask-background-color: color-mix(in oklab, var(--c-canvas) 70%, transparent);
+  --xy-minimap-node-background-color: var(--c-surface-3);
+  --xy-controls-button-background-color: var(--c-surface);
+  --xy-controls-button-background-color-hover: var(--c-surface-2);
+  --xy-controls-button-color: var(--c-fg-2);
+  --xy-controls-button-color-hover: var(--c-fg);
+  --xy-controls-button-border-color: var(--c-line);
+  --xy-controls-box-shadow: var(--c-shadow);
+  --xy-node-boxshadow-selected: none;
+}
+.react-flow__minimap {
+  @apply overflow-hidden rounded-lg border border-line;
+}
+.react-flow__controls {
+  @apply overflow-hidden rounded-lg border border-line;
+}
+/* Handles: bigger target, neutral at rest, accent while you're connecting. */
 .react-flow__handle {
-  @apply h-3! w-3! border-2! border-zinc-950! bg-amber-400!;
+  @apply h-3.5! w-3.5! border-2! border-surface! bg-fg-3! transition-transform;
+}
+.react-flow__handle:hover,
+.react-flow__handle.connectingfrom,
+.react-flow__handle.valid {
+  @apply scale-125 bg-accent!;
 }
 .react-flow__node.selected > div {
-  @apply ring-2 ring-amber-400;
+  @apply ring-2 ring-accent;
 }
 .react-flow__attribution {
   display: none;

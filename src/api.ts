@@ -228,16 +228,17 @@ export const timeAgo = (ms: number | null | undefined) => {
   return new Date(ms).toLocaleDateString();
 };
 
+/** Heat scale for the outlier score. Fixed colors (same in light and dark); each label passes contrast. */
 export const scoreTone = (score: number | null | undefined) =>
   score == null
-    ? "bg-zinc-700 text-zinc-200"
+    ? "bg-surface-3 text-fg"
     : score >= 5
-      ? "bg-rose-500 text-white"
+      ? "bg-[#e11d48] text-white" // 4.70:1
       : score >= 3
-        ? "bg-orange-500 text-white"
+        ? "bg-[#f97316] text-[#1a1407]" // 6.53:1
         : score >= 1.5
-          ? "bg-amber-400 text-zinc-950"
-          : "bg-zinc-700 text-zinc-200";
+          ? "bg-[#fbbf24] text-[#1a1407]" // 10.97:1
+          : "bg-surface-3 text-fg";
 
 export const thumbUrl = (reel: Pick<Reel, "id">) => `/api/reels/${encodeURIComponent(reel.id)}/thumb`;
 

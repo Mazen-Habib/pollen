@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Hash, MessageSquare, Plus, RefreshCw, Sparkles, UserRound, X, Radar as RadarIcon } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Hash,
+  MessageSquare,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  UserRound,
+  X,
+  Radar as RadarIcon,
+} from "lucide-react";
 import { api, fmtNum, navigate, timeAgo, type Creator, type Hashtag, type RadarStatus, type Reel } from "../api.ts";
 import { useStatus } from "../status.ts";
-import { Alternatives, Empty, ErrorBox, Spinner, useAsync } from "../components/ui.tsx";
+import { Alternatives, Empty, ErrorBox, IconButton, Spinner, useAsync } from "../components/ui.tsx";
 import { ManualReelForm, ReelCard, ReelDetail } from "../components/reels.tsx";
 import { ChatPanel } from "../components/ChatPanel.tsx";
 
@@ -31,21 +44,35 @@ function WatchItem({
   onClick: () => void;
   active: boolean;
 }) {
+  // Status is shown by icon shape (and named for screen readers), not by color alone.
+  const state = error
+    ? { Icon: AlertCircle, tone: "text-danger", text: `Last refresh failed: ${error}` }
+    : fetched
+      ? { Icon: CheckCircle2, tone: "text-success", text: `Fetched ${timeAgo(fetched)}` }
+      : { Icon: Clock, tone: "text-fg-3", text: "Not fetched yet. Press Refresh now." };
   return (
     <div
-      className={`group flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm ${active ? "bg-zinc-800" : "hover:bg-zinc-900"}`}
-      title={error ?? (fetched ? `Fetched ${timeAgo(fetched)}` : "Not fetched yet: press Refresh")}
+      className={`group flex items-center gap-1.5 rounded-lg py-0.5 pr-0.5 pl-2 text-sm ${active ? "bg-surface-3" : "hover:bg-surface-2"}`}
+      title={state.text}
     >
-      <span
-        className={`h-2 w-2 shrink-0 rounded-full ${error ? "bg-rose-400" : fetched ? "bg-emerald-400" : "bg-zinc-600"}`}
-      />
-      <button className="min-w-0 flex-1 truncate text-left" onClick={onClick}>
+      <state.Icon aria-hidden className={`h-3.5 w-3.5 shrink-0 ${state.tone}`} />
+      <button
+        className="min-w-0 flex-1 truncate py-1 text-left"
+        aria-pressed={active}
+        aria-label={`${label}. ${state.text}. ${active ? "Showing only this." : "Show only this."}`}
+        onClick={onClick}
+      >
         {label}
       </button>
-      <span className="text-xs text-zinc-500">{sub}</span>
-      <button className="text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-rose-300" onClick={onRemove}>
-        <X className="h-3.5 w-3.5" />
-      </button>
+      <span className="text-xs text-fg-3 tabular-nums">{sub}</span>
+      <IconButton
+        label={`Remove ${label}`}
+        tone="danger"
+        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        onClick={onRemove}
+      >
+        <X className="h-4 w-4" />
+      </IconButton>
     </div>
   );
 }
@@ -153,7 +180,7 @@ export function RadarPage() {
           <header className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">Trend Radar</h1>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-fg-2">
                 Reels from your watchlist, ranked by how far they beat that creator's normal. Last refresh{" "}
                 {timeAgo(radar?.lastRefreshAt ?? status?.lastRefreshAt)}
                 {radar?.autoRefreshHours ? ` · auto every ${radar.autoRefreshHours}h` : " · auto-refresh off"}.
@@ -167,7 +194,7 @@ export function RadarPage() {
                 <MessageSquare className="h-4 w-4" /> Ask the Radar
               </button>
               <button className="btn-ghost" disabled={reporting || !reels.data?.length} onClick={report}>
-                {reporting ? <Spinner /> : <Sparkles className="h-4 w-4" />} {reporting ? "Writing report…" : "Ideas report"}
+                {reporting ? <Spinner /> : <Sparkles className="h-4 w-4" />} {reporting ? "Writing report…" : "Write ideas report"}
               </button>
               <button className="btn-primary" disabled={radar?.running || !!noSource} onClick={refresh}>
                 <RefreshCw className={`h-4 w-4 ${radar?.running ? "animate-spin" : ""}`} />
@@ -180,7 +207,7 @@ export function RadarPage() {
             <section className="card space-y-4 p-5">
               <div>
                 <h2 className="text-lg font-semibold">Connect a live Instagram source</h2>
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-fg-2">
                   Instagram doesn't give free public access to other creators' Reels, so Pollen uses one of these. Until one is
                   connected you can still add Reels manually and use every AI feature.
                 </p>
@@ -210,19 +237,20 @@ export function RadarPage() {
               <div className="mb-2 flex items-center gap-2 text-sm font-medium">
                 <Spinner /> Fetching live data… you can keep using the app.
               </div>
-              <pre className="max-h-40 overflow-y-auto text-xs whitespace-pre-wrap text-zinc-400">{radar.log.join("\n")}</pre>
+              <pre className="max-h-40 overflow-y-auto text-xs whitespace-pre-wrap text-fg-2">{radar.log.join("\n")}</pre>
             </section>
           )}
           {!radar?.running && radar?.error && <ErrorBox error={{ message: `Last refresh failed: ${radar.error}` }} />}
           {!radar?.running && failed.length > 0 && (
-            <section className="card space-y-3 border-amber-500/30 p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-amber-200">
-                <AlertTriangle className="h-4 w-4" /> {failed.length} item(s) couldn't be fetched live on the last refresh
+            <section className="card space-y-3 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-fg">
+                <AlertTriangle aria-hidden className="h-4 w-4 shrink-0 text-danger" />
+                {failed.length} item(s) couldn't be fetched live on the last refresh
               </div>
-              <ul className="space-y-1 text-sm text-zinc-400">
+              <ul className="space-y-1 text-sm text-fg-2">
                 {failed.map((f) => (
                   <li key={f.name}>
-                    <span className="text-zinc-200">{radar!.last!.creators.includes(f) ? `@${f.name}` : `#${f.name}`}</span>:{" "}
+                    <span className="text-fg">{radar!.last!.creators.includes(f) ? `@${f.name}` : `#${f.name}`}</span>:{" "}
                     {f.error}
                   </li>
                 ))}
@@ -276,7 +304,7 @@ export function RadarPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="px-1 text-xs text-zinc-500">
+                  <p className="px-1 text-xs text-fg-3">
                     Add 5–20 creators in your niche, including ones bigger and smaller than you.
                   </p>
                 )}
@@ -318,18 +346,19 @@ export function RadarPage() {
                     />
                   ))
                 ) : (
-                  <p className="px-1 text-xs text-zinc-500">Find breakout Reels from creators you don't follow yet.</p>
+                  <p className="px-1 text-xs text-fg-3">Find breakout Reels from creators you don't follow yet.</p>
                 )}
               </section>
             </aside>
 
             <section className="min-w-0 space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex rounded-lg bg-zinc-900 p-0.5">
+                <div className="flex rounded-lg border border-line bg-surface-2 p-0.5">
                   {DAYS.map((d) => (
                     <button
                       key={d}
-                      className={`rounded-md px-3 py-1 text-sm ${days === d ? "bg-zinc-700 text-white" : "text-zinc-400"}`}
+                      className={`rounded-md px-3 py-1 text-sm ${days === d ? "bg-surface text-fg shadow-sm" : "text-fg-2 hover:text-fg"}`}
+                      aria-pressed={days === d}
                       onClick={() => setDays(d)}
                     >
                       {d}d
@@ -344,11 +373,11 @@ export function RadarPage() {
                   ))}
                 </select>
                 {(owner || hashtag) && (
-                  <button className="btn-ghost" onClick={() => (setOwner(""), setHashtag(""))}>
+                  <button className="btn-ghost" title="Clear filter" onClick={() => (setOwner(""), setHashtag(""))}>
                     {owner ? `@${owner}` : `#${hashtag}`} <X className="h-3.5 w-3.5" />
                   </button>
                 )}
-                <span className="ml-auto text-xs text-zinc-500">
+                <span className="ml-auto text-xs text-fg-3">
                   {reels.data?.length ?? 0} Reels · score = views ÷ creator's median
                 </span>
               </div>
@@ -376,7 +405,7 @@ export function RadarPage() {
       </div>
 
       {chatOpen && (
-        <div className="w-[420px] shrink-0 border-l border-zinc-800">
+        <div className="w-[420px] shrink-0 border-l border-line">
           <ChatPanel chatId="radar" scope="radar" days={days} title="Ask the Radar" onClose={() => setChatOpen(false)} />
         </div>
       )}
